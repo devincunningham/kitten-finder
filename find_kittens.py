@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 
@@ -24,12 +25,13 @@ if __name__ == "__main__":
 
     try:
         while True:
-            # Scrape the petfinder API.
-            # If it doesn't return a successful response, wait a few minutes and try again.
             try:
+                # Scrape the petfinder API. Exclude any kittens until they have pictures.
                 available_kittens_df = kf.fetch_data()
+                available_kittens_df.dropna(subset=['primary_photo_cropped'], inplace=True)
             except FetchError as e:
-                print(e)
+                # If the API doesn't return a successful response, wait a few minutes and try again.
+                logging.error(e)
                 time.sleep(300)
                 continue
 
@@ -37,8 +39,7 @@ if __name__ == "__main__":
             historical_kittens_df = pd.read_csv('historical_kittens.csv', index_col='id')
 
             # Compare the newly scraped data with the previously scraped data.
-            merged_df = available_kittens_df.merge(historical_kittens_df, on='id', how='outer', indicator=True)
-            new_kitten_ids = merged_df[merged_df['_merge'] == 'left_only'].index
+            new_kitten_ids = [k for k in available_kittens_df.index if k not in historical_kittens_df.index]
             new_kittens_df = available_kittens_df.loc[new_kitten_ids]
 
             # Overwrite the old csv with the newly scraped data. Out with the old, in with the new!
@@ -63,8 +64,8 @@ if __name__ == "__main__":
                     message = "New kitten available for adoption: " \
                               f"a {kitten_gender} {kitten_breed} named {kitten_name}! \n{kitten_url}"
 
-                    print(message)
                     # Text the message to my phone.
+                    logging.info(message)
                     twilio_client.messages.create(
                         body=message,
                         from_=os.environ['MY_TWILIO_NUMBER'],
@@ -74,7 +75,7 @@ if __name__ == "__main__":
                     # A short sleep to protect against my Twilio trial data limits.
                     time.sleep(5)
             else:
-                print("No new kittens yet! Try again later.")
+                logging.info("No new kittens yet! Try again later.")
 
             # After all is said and done, take a quick break and then try it again!
             time.sleep(300)
@@ -82,7 +83,8 @@ if __name__ == "__main__":
     # If anything goes wrong, try to text me and then end the script.
     # I know that wrapping everything in one giant try/except is bad,
     # but this is a simple script for a simple task!
-    except Exception:
+    except Exception as e:
+        logging.error(e)
         twilio_client.messages.create(
             body="The kitten finder got all tangled up! Come help!",
             from_=os.environ['MY_TWILIO_NUMBER'],
