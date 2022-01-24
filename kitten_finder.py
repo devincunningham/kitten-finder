@@ -5,6 +5,8 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
+from exceptions import FetchError
+
 
 class KittenFinder:
     def __init__(self):
@@ -25,6 +27,10 @@ class KittenFinder:
                 'age': 'baby, young',
             },
         )
+
+        if response.status_code != 200:
+            raise FetchError(f"Unable to fetch pets! Encountered status code {response.status_code}.")
+
         df = pd.DataFrame(response.json()['animals'])
         df.set_index('id', inplace=True)
         return df

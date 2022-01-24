@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from twilio.base import values
 from twilio.rest import Client
 
+from exceptions import FetchError
 from kitten_finder import KittenFinder
 
 
@@ -23,8 +24,14 @@ if __name__ == "__main__":
 
     try:
         while True:
-            # Scrape petfinder.
-            available_kittens_df = kf.fetch_data()
+            # Scrape the petfinder API.
+            # If it doesn't return a successful response, wait a few minutes and try again.
+            try:
+                available_kittens_df = kf.fetch_data()
+            except FetchError as e:
+                print(e)
+                time.sleep(300)
+                continue
 
             # Read in the previously scraped data.
             historical_kittens_df = pd.read_csv('historical_kittens.csv', index_col='id')
@@ -70,7 +77,7 @@ if __name__ == "__main__":
                 print("No new kittens yet! Try again later.")
 
             # After all is said and done, take a quick break and then try it again!
-            time.sleep(60)
+            time.sleep(300)
 
     # If anything goes wrong, try to text me and then end the script.
     # I know that wrapping everything in one giant try/except is bad,
