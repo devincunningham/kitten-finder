@@ -3,16 +3,14 @@ import time
 
 import pandas as pd
 import requests
-from dotenv import load_dotenv
 
 from exceptions import FetchError
 
 
 class KittenFinder:
     def __init__(self):
-        self._authorization_header = None
-        self._last_authorization = None
-        self._task = None
+        self._auth_header = None
+        self._auth_expiration = None
 
     def fetch_data(self) -> pd.DataFrame:
         """Get all adoptable kittens near me as a dataframe."""
@@ -35,8 +33,7 @@ class KittenFinder:
         df.set_index('id', inplace=True)
         return df
 
-    @staticmethod
-    def get_petfinder_authorization_header() -> dict:
+    def get_petfinder_authorization_header(self) -> dict:
         """Get a new authorization header from petfinder."""
 
         # Send keys to petfinder to get my token.
@@ -49,6 +46,9 @@ class KittenFinder:
             },
         )
 
+        # Record when the authorization header is set to expire.
+        self._auth_expiration = time.time() + response.json()['expiration']
+
         # Process the response into a header I can use for get requests.
         token_type = response.json()['token_type']
         access_token = response.json()['access_token']
@@ -58,7 +58,6 @@ class KittenFinder:
     @property
     def auth_header(self) -> dict:
         """Get a new authorization header if necessary or return an existing valid one."""
-        if self._last_authorization is None or self._last_authorization < time.time() - 3600:
-            self._last_authorization = time.time()
-            self._authorization_header = self.get_petfinder_authorization_header()
-        return self._authorization_header
+        if self._auth_header is None or time.time() >= self._auth_expiration:
+            self._auth_header = self.get_petfinder_authorization_header()
+        return self._auth_header
