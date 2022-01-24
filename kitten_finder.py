@@ -21,8 +21,9 @@ class KittenFinder:
                 'type': 'cat',
                 'breed': 'Maine Coon,Domestic Medium Hair,Domestic Long Hair',
                 'location': 'Seattle, Washington',
-                'distance': 200,
+                'distance': 180,
                 'age': 'baby, young',
+                'limit': 100,
             },
         )
 
