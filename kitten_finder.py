@@ -47,7 +47,7 @@ class KittenFinder:
         )
 
         # Record when the authorization header is set to expire.
-        self._auth_expiration = time.time() + response.json()['expiration']
+        self._auth_expiration = time.time() + response.json()['expires_in']
 
         # Process the response into a header I can use for get requests.
         token_type = response.json()['token_type']
